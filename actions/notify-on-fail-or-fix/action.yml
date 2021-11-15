@@ -1,0 +1,41 @@
+name: Notify on workflow fail or workflow fix
+
+inputs:
+  GITHUB_TOKEN:
+    required: true
+  SLACK_WEBHOOK_URL:
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Echo workflow_run
+    shell: bash
+    env:
+      WORKFLOW_RUN: ${{ toJson(github.event.workflow_run) }}
+    run: echo "$WORKFLOW_RUN"
+  - name: Get previous build status
+    id: last_status
+    shell: bash
+    run: |
+      last_status=$(curl --silent --header 'authorization: Bearer ${{ inputs.GITHUB_TOKEN }}' \
+                                  --header 'content-type: application/json' \
+      "${{ github.event.workflow_run.workflow_url }}/runs?per_page=2&status=completed&branch=${{ github.event.workflow_run.head_branch }}" \
+      | jq -r '.workflow_runs[1].conclusion')
+      echo "Status of the previous build: $last_status"
+      echo "::set-output name=last_status::${last_status}"
+  - name: Print current and last status
+    shell: bash
+    run: |
+      echo ${{ github.event.workflow_run.conclusion }}
+      echo ${{ steps.last_status.outputs.last_status }}
+  - name: Send GitHub Action trigger data to Slack workflow
+    uses: slackapi/slack-github-action@v1.14.0
+    # notify if this commit failed, or if a failure has been fixed
+    if: |
+      (github.event.workflow_run.conclusion == 'failure') ||
+      (steps.last_status.outputs.last_status == 'failure')
+    with:
+      payload: ${{ toJson(github.event.workflow_run) }}
+    env:
+      SLACK_WEBHOOK_URL: ${{ inputs.SLACK_WEBHOOK_URL }}
