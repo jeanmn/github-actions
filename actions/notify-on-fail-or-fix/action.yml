@@ -1,4 +1,4 @@
-name: Notify on workflow fail or workflow fix
+name: Notify on Workflow fail or Workflow fix
 
 inputs:
   GITHUB_TOKEN:
