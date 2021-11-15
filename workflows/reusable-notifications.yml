@@ -1,0 +1,17 @@
+name: Reusable Notification Workflow
+
+on:
+  workflow_call:
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: true
+
+jobs:
+
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jeanmn/github-actions/actions/notify-on-fail-or-fix@2c88f6bdd44f31f5e5ded7db0af39ced3f438a56
+        with:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
